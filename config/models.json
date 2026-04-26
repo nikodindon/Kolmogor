@@ -1,0 +1,101 @@
+{
+  "models": [
+    {
+      "id": "qwen2.5-coder-1.5b-q8",
+      "family": "Qwen2.5-Coder",
+      "params": "1.5B",
+      "quant": "Q8_0",
+      "file": "Qwen2.5-Coder-1.5B-Instruct-Q8_0.gguf",
+      "size_gb": 1.6,
+      "llama_port": 8081,
+      "inference": "cpu-only",
+      "role_candidates": ["planner"],
+      "role_excluded": ["architect", "coder", "critic"],
+      "status": "to_test",
+      "notes": "Prior experiments show spec quality too vague and code often corrupted at this size. Testing as Planner only (bounded JSON output)."
+    },
+    {
+      "id": "qwen2.5-coder-3b-q6",
+      "family": "Qwen2.5-Coder",
+      "params": "3B",
+      "quant": "Q6_K",
+      "file": "Qwen2.5-Coder-3B-Instruct-Q6_K.gguf",
+      "size_gb": 2.4,
+      "llama_port": 8082,
+      "inference": "cpu-only",
+      "role_candidates": ["coder", "critic", "planner"],
+      "role_excluded": [],
+      "status": "to_test",
+      "notes": "Hypothesis: sufficient for Coder on simple single-file tasks. Minimum viable for Critic on short specs."
+    },
+    {
+      "id": "qwen2.5-coder-7b-q4km",
+      "family": "Qwen2.5-Coder",
+      "params": "7B",
+      "quant": "Q4_K_M",
+      "file": "Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf",
+      "size_gb": 4.3,
+      "llama_port": 8083,
+      "inference": "cpu-only",
+      "role_candidates": ["architect", "coder", "critic", "planner", "designer"],
+      "role_excluded": [],
+      "status": "baseline",
+      "notes": "Validated in prior projects (local-intent-coder). Full pipeline works. 4.81 tok/s on Ryzen 5 5500U. Reference point for all comparisons."
+    },
+    {
+      "id": "qwen2.5-coder-7b-q5km",
+      "family": "Qwen2.5-Coder",
+      "params": "7B",
+      "quant": "Q5_K_M",
+      "file": "Qwen2.5-Coder-7B-Instruct-Q5_K_M.gguf",
+      "size_gb": 5.1,
+      "llama_port": 8083,
+      "inference": "cpu-only",
+      "role_candidates": ["architect", "coder", "critic", "planner", "designer"],
+      "role_excluded": [],
+      "status": "to_test",
+      "notes": "Higher quality quant than Q4_K_M. Testing whether the quality gain justifies the size cost on CPU."
+    },
+    {
+      "id": "mistral-7b-q4km",
+      "family": "Mistral",
+      "params": "7B",
+      "quant": "Q4_K_M",
+      "file": "Mistral-7B-Instruct-v0.3-Q4_K_M.gguf",
+      "size_gb": 4.1,
+      "llama_port": 8084,
+      "inference": "cpu-only",
+      "role_candidates": ["architect", "meta_architect"],
+      "role_excluded": [],
+      "status": "to_test",
+      "notes": "Generalist model at similar size to Qwen 7B. Hypothesis: better at architectural reasoning and language understanding, weaker on raw code generation."
+    },
+    {
+      "id": "llama3-8b-q4km",
+      "family": "Llama3",
+      "params": "8B",
+      "quant": "Q4_K_M",
+      "file": "Meta-Llama-3-8B-Instruct-Q4_K_M.gguf",
+      "size_gb": 4.9,
+      "llama_port": 8085,
+      "inference": "cpu-only",
+      "role_candidates": ["architect", "critic", "meta_architect"],
+      "role_excluded": [],
+      "status": "to_test",
+      "notes": "Strong instruction following. Testing as Architect and Critic. Slightly larger than 7B models, worth checking speed cost on CPU."
+    }
+  ],
+
+  "hardware": {
+    "machine": "Asus VivoBook 15",
+    "cpu": "AMD Ryzen 5 5500U",
+    "ram_gb": 20,
+    "gpu": "none",
+    "inference_mode": "cpu-only",
+    "os": "WSL2 on Windows 11",
+    "llama_cpp_version": "to_fill",
+    "measured_speed_toks": 4.81,
+    "context_default": 16384,
+    "threads": 10
+  }
+}

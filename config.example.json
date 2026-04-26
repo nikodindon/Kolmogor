@@ -1,0 +1,14 @@
+{
+  "base_url": "http://localhost:8083/v1",
+  "api_key": "sk-placeholder",
+  "model": "qwen2.5-coder-7b",
+  "context_size": 16384,
+  "max_out_tokens": 3000,
+  "snapshot_limit": 800,
+  "temperature": 0.0,
+  "threads": 10,
+
+  "_comment_temperature": "Always 0.0 for research runs. Greedy decoding is fully deterministic on CPU.",
+  "_comment_snapshot_limit": "Max tokens of project snapshot fed to Critic. Tune if context overflows.",
+  "_comment_model": "Must match the model currently loaded in llama-server. See config/models.json for catalogue."
+}
