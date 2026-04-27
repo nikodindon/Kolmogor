@@ -1,0 +1,22 @@
+{
+  "model": "qwen2.5-coder-7b",
+  "prompt": "build a playable Tetris game",
+  "experiment": "exp-001-baseline",
+  "run_id": "run-002",
+  "started_at": "2026-04-26T19:32:14.148849",
+  "finished_at": "2026-04-26T20:21:53.295249",
+  "cycles": 5,
+  "verdict": "STALL",
+  "stall_detected": true,
+  "stall_pattern": "recurring issue(s) across 3+ cycles: 1. <file> — the `rotate_piece` method is referenced but not defined. | 2. <file> — the `drop_piece` method is referenced but not defined. | 3. <file> — the `clear_lines` method is referenced but not defined.",
+  "stall_diagnosis": "Pattern not matched to a known category. Review the full critic_log.jsonl for this run. Consider whether the issue is in the Architect spec (too vague), the Coder model (too small), or the Critic prompt (identifying impossible fixes).",
+  "executor_pass": null,
+  "executor_details": {},
+  "designer_score": null,
+  "designer_cycles": 0,
+  "seed_bytes": 28,
+  "artifact_bytes": 4797,
+  "compression_ratio": 0.0058,
+  "functional_hash": "",
+  "error": ""
+}

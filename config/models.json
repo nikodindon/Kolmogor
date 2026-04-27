@@ -29,11 +29,11 @@
       "notes": "Hypothesis: sufficient for Coder on simple single-file tasks. Minimum viable for Critic on short specs."
     },
     {
-      "id": "qwen2.5-coder-7b-q4km",
+      "id": "qwen2.5-coder-7b-q5km",
       "family": "Qwen2.5-Coder",
       "params": "7B",
-      "quant": "Q4_K_M",
-      "file": "Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf",
+      "quant": "Q5_K_M",
+      "file": "Qwen2.5-Coder-7B-Instruct-Q5_K_M.gguf",
       "size_gb": 4.3,
       "llama_port": 8083,
       "inference": "cpu-only",
