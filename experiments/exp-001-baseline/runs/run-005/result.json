@@ -1,0 +1,23 @@
+{
+  "model": "qwen2.5-coder-7b",
+  "prompt": "build a playable Tetris game",
+  "experiment": "exp-001-baseline",
+  "run_id": "run-005",
+  "started_at": "2026-04-27T09:29:42.486865",
+  "finished_at": "2026-04-27T10:56:27.666408",
+  "forced_target": "html_js",
+  "cycles": 5,
+  "verdict": "STALL",
+  "stall_detected": true,
+  "stall_pattern": "recurring issue(s) across 3+ cycles: 4. <file> — the `update` function is not implemented. | 1. <file> — the canvas element is missing the `id=\"tetriscanvas\"` attribute. | 3. <file> — the `drawtetrimino` function is not implemented.",
+  "stall_diagnosis": "The Coder is not resolving missing imports or undefined references. Possible causes: model too small to track cross-file dependencies, or spec does not make file roles explicit enough.",
+  "executor_pass": null,
+  "executor_details": {},
+  "designer_score": null,
+  "designer_cycles": 0,
+  "seed_bytes": 28,
+  "artifact_bytes": 5142,
+  "compression_ratio": 0.0054,
+  "functional_hash": "",
+  "error": ""
+}

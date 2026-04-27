@@ -95,3 +95,37 @@ Format per entry:
 |---|---|---|---|---|
 | 2026-04-26 | loop.py | Planner called when issues list empty, hallucinated fix targets | Added `if not issues: break` guard before Planner call | Fixed |
 | 2026-04-26 | llm.py | HTTP timeout 600s too short for large fix cycles (~1232 tokens at 4.8 tok/s) | Raised to 900s | Fixed |
+
+---
+
+### 2026-04-27 — run-005 — exp-001-baseline
+
+- **Model**: Qwen2.5-Coder-7B Q5_K_M
+- **Target**: forced html_js (3 files: index.html + game.js + style.css)
+- **Prompt**: build a playable Tetris game
+- **Result**: STALL
+- **Cycles**: 5
+- **Functional**: N/A
+- **Visual**: N/A
+- **Notes**: First html_js run. Same stall pattern as Pygame but different root cause. game.js locked at exactly 3863 chars from cycle 2 onward — 1232 completion tokens, identical output every cycle. Temperature=0 determinism confirmed: same prompt + same file + same issue = strictly identical output. Two bugs surfaced: (1) Planner produced game.js twice in the fix plan (cycles 2-4), causing two identical Coder calls per cycle wasting ~500s each. (2) Coder fix loop has no mechanism to escape deterministic repetition. Multi-file HTML/JS stalls for the same reason as Pygame: the Critic keeps reporting functions as missing even though game.js grows to a reasonable size, suggesting Critic is hallucinating or the snapshot truncation hides the implementations.
+
+  Key finding: the stall is architectural, not model-capability. The repair loop needs (a) deduplication in the Planner output and (b) fix history injection in the Coder to break the deterministic loop. Also: single_html target added — all code in one index.html file — to eliminate multi-file Critic verification issues entirely.
+
+---
+
+## Planned runs
+
+- **run-006**: same prompt, `--target single_html`. All code in index.html. Hypothesis: eliminates Critic cross-file hallucination and Coder multi-file inconsistency in one move.
+- **run-007**: if run-006 succeeds, same prompt `--target html_js` with fixes applied (Planner deduplication + Coder fix history). Tests if fixes are sufficient for multi-file.
+- **run-008**: if run-006 succeeds, same prompt `--target single_html` with Qwen2.5-Coder-3B Q6_K. Test minimum Coder model size.
+
+---
+
+## Bug log
+
+| Date | Component | Description | Fix | Status |
+|---|---|---|---|---|
+| 2026-04-26 | loop.py | Planner called when issues list empty, hallucinated fix targets | Added `if not issues: break` guard | Fixed |
+| 2026-04-26 | llm.py | HTTP timeout 600s too short for large fix cycles | Raised to 900s | Fixed |
+| 2026-04-27 | planner.py | Same file appeared twice in fix plan (game.js x2 in run-005) | Added `_deduplicate()` method merging same-file entries | Fixed |
+| 2026-04-27 | coder.py/loop.py | Deterministic fix loop: temp=0 + same context = same output forever | Injected fix_history accumulator into Coder fix prompt | Fixed |

@@ -67,7 +67,7 @@ def main():
     parser.add_argument("--experiment", default=None, help="Experiment name (default: auto)")
     parser.add_argument("--max_cycles", type=int, default=6)
     parser.add_argument("--target", default="auto",
-                        choices=["auto", "html_js", "python_pygame", "python_cli"],
+                        choices=["auto", "html_js", "single_html", "python_pygame", "python_cli"],
                         help="Force stack target (default: auto, Meta-Architect decides)")
     parser.add_argument("--no-play", action="store_true", help="Generate but do not open in browser")
     parser.add_argument("--debug", action="store_true", help="Verbose logging")

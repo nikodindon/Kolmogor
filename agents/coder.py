@@ -33,13 +33,25 @@ class Coder:
         )
         return self._parse_code_blocks(raw)
 
-    def fix_file(self, filename: str, current_content: str, reason: str, spec: str, session) -> str:
+    def fix_file(self, filename: str, current_content: str, reason: str, spec: str, session,
+                 fix_history: list[str] = None) -> str:
         """
         Rewrite a single file to fix a described issue.
+        fix_history: list of previous failed reasons for this file, injected to break
+        deterministic loops (temperature=0 + same context = same output).
         """
+        history_block = ""
+        if fix_history:
+            history_block = (
+                f"\nPREVIOUS FAILED ATTEMPTS ON THIS FILE:\n"
+                + "\n".join(f"- {h}" for h in fix_history[-3:])
+                + "\nThe above attempts did not resolve the issue. You must take a different approach.\n"
+            )
+
         user_message = (
             f"FILE: {filename}\n\n"
-            f"CURRENT CONTENT:\n```\n{current_content}\n```\n\n"
+            f"CURRENT CONTENT:\n```\n{current_content}\n```\n"
+            f"{history_block}\n"
             f"ISSUE TO FIX: {reason}\n\n"
             f"SPEC CONTEXT:\n{spec[:1000]}\n\n"
             "Rewrite the complete file with the fix applied."

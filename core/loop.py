@@ -55,6 +55,9 @@ def run_pipeline(session: Session, max_cycles: int = 6, play: bool = True) -> di
 
         cycle = 0
         verdict = "NEEDS_FIXES"
+        # Tracks failed fix reasons per file across cycles to break deterministic loops.
+        # Key: filename, Value: list of reason strings from previous cycles.
+        fix_history: dict[str, list[str]] = {}
 
         while verdict != "ALL_COMPLETE" and cycle < max_cycles:
             cycle += 1
@@ -98,8 +101,14 @@ def run_pipeline(session: Session, max_cycles: int = 6, play: bool = True) -> di
                 filename = fix.get("file")
                 reason = fix.get("reason", "")
                 current_content = session.generated_files.get(filename, "")
-                fixed_content = coder.fix_file(filename, current_content, reason, spec, session)
+                history = fix_history.get(filename, [])
+                fixed_content = coder.fix_file(filename, current_content, reason, spec, session,
+                                               fix_history=history)
                 session.write_file(filename, fixed_content)
+                # Accumulate this reason in history for next cycle
+                if filename not in fix_history:
+                    fix_history[filename] = []
+                fix_history[filename].append(reason)
 
         # Phase 4: Executor (functional tests)
         if verdict == "ALL_COMPLETE":

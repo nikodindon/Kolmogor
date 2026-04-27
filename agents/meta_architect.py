@@ -23,16 +23,19 @@ class MetaArchitect:
         if forced_target:
             language_map = {
                 "html_js": "JavaScript",
+                "single_html": "JavaScript",
                 "python_pygame": "Python",
                 "python_cli": "Python",
             }
             file_hints_map = {
                 "html_js": ["index.html", "game.js", "style.css"],
+                "single_html": ["index.html"],
                 "python_pygame": ["main.py"],
                 "python_cli": ["main.py"],
             }
             constraints_map = {
                 "html_js": ["self-contained single HTML file preferred", "no external dependencies", "canvas or DOM"],
+                "single_html": ["single file only: index.html", "all CSS in <style> tag", "all JS in <script> tag", "no external files", "no imports"],
                 "python_pygame": ["single file preferred", "pygame only", "no external assets"],
                 "python_cli": ["single file", "stdlib only unless specified"],
             }
