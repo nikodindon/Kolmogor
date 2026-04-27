@@ -1,0 +1,45 @@
+{
+  "model": "qwen2.5-coder-7b",
+  "prompt": "build a Snake game",
+  "experiment": "exp-002-snake",
+  "run_id": "run-002",
+  "started_at": "2026-04-27T14:44:39.591598",
+  "finished_at": "2026-04-27T14:58:19.778523",
+  "forced_target": "single_html",
+  "cycles": 1,
+  "verdict": "ALL_COMPLETE",
+  "stall_detected": false,
+  "stall_pattern": "",
+  "stall_diagnosis": "",
+  "executor_pass": false,
+  "executor_details": {
+    "pass": false,
+    "artifact_type": "arcade_game",
+    "tests": [
+      {
+        "name": "page_loads",
+        "pass": true,
+        "detail": "True"
+      },
+      {
+        "name": "no_critical_js_errors",
+        "pass": true,
+        "detail": "True"
+      },
+      {
+        "name": "canvas_present",
+        "pass": false,
+        "detail": "False"
+      }
+    ],
+    "console_errors": [],
+    "dialogs": []
+  },
+  "designer_score": 9.0,
+  "designer_cycles": 1,
+  "seed_bytes": 18,
+  "artifact_bytes": 4149,
+  "compression_ratio": 0.0043,
+  "functional_hash": "",
+  "error": ""
+}

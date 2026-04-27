@@ -1,0 +1,23 @@
+{
+  "model": "qwen2.5-coder-7b",
+  "prompt": "build a classic Asteroid arcade game with shot and explosion sounds",
+  "experiment": "exp-003-asteroid",
+  "run_id": "run-001",
+  "started_at": "2026-04-27T13:30:42.911743",
+  "finished_at": "2026-04-27T14:37:54.101112",
+  "forced_target": "single_html",
+  "cycles": 5,
+  "verdict": "STALL",
+  "stall_detected": true,
+  "stall_pattern": "recurring issue(s) across 3+ cycles: 2. `<file>` — the `movebullet` function is not defined, which is referenced in the `shootasteroid` function. | 1. `<file>` — the `shootasteroid` function is incomplete and lacks the logic to move the bullet upwards.",
+  "stall_diagnosis": "Logic errors that survive repeated fix cycles typically indicate the text-only Critic cannot see the runtime behavior. The Executor should catch these. If the Executor also passes, the issue description in the Critic prompt may be too vague.",
+  "executor_pass": null,
+  "executor_details": {},
+  "designer_score": null,
+  "designer_cycles": 0,
+  "seed_bytes": 67,
+  "artifact_bytes": 5393,
+  "compression_ratio": 0.0124,
+  "functional_hash": "",
+  "error": ""
+}
