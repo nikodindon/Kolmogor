@@ -129,3 +129,123 @@ Format per entry:
 | 2026-04-26 | llm.py | HTTP timeout 600s too short for large fix cycles | Raised to 900s | Fixed |
 | 2026-04-27 | planner.py | Same file appeared twice in fix plan (game.js x2 in run-005) | Added `_deduplicate()` method merging same-file entries | Fixed |
 | 2026-04-27 | coder.py/loop.py | Deterministic fix loop: temp=0 + same context = same output forever | Injected fix_history accumulator into Coder fix prompt | Fixed |
+
+---
+
+### 2026-04-27 — run-006 — exp-001-baseline
+
+- **Model**: Qwen2.5-Coder-7B Q5_K_M
+- **Target**: forced single_html
+- **Prompt**: build a playable Tetris game
+- **Result**: ERROR (HTTP timeout)
+- **Cycles**: 2
+- **Functional**: N/A
+- **Visual**: N/A
+- **Notes**: index.html locked at 5381 chars = ~1465 tokens from cycle 1. Fix call timed out at 900s on cycle 2. Root cause: Tetris in single_html exceeds the model's effective max_out_tokens. The model hits its generation ceiling before completing all functions. max_out_tokens is set to 3000 in config but the model caps around 1465 completion tokens for this file size. Need to raise max_out_tokens to 6000 in config.json before retrying Tetris.
+
+---
+
+### 2026-04-27 — run-001 — exp-002-snake
+
+- **Model**: Qwen2.5-Coder-7B Q5_K_M
+- **Target**: forced single_html
+- **Prompt**: build a Snake game
+- **Result**: ALL_COMPLETE
+- **Cycles**: 1
+- **Functional**: null (Playwright not installed at time of run)
+- **Visual**: 0.0 (Designer skipped, Playwright not installed)
+- **Notes**: First ALL_COMPLETE. Snake completed in 1 cycle, 3936 chars, seed 18 bytes, compression 0.0046. HTML verified manually: fully functional game with DOM-based rendering (absolute-positioned divs, no canvas). Playwright was not yet installed so executor and designer could not run.
+
+---
+
+### 2026-04-27 — run-002 — exp-002-snake
+
+- **Model**: Qwen2.5-Coder-7B Q5_K_M
+- **Target**: forced single_html
+- **Prompt**: build a Snake game
+- **Result**: ALL_COMPLETE
+- **Cycles**: 1
+- **Functional**: FAIL (false negative — executor bug)
+- **Visual**: 9.0/10 VISUALLY_COMPLETE
+- **Notes**: Playwright now installed. ALL_COMPLETE in 1 cycle again — determinism confirmed (same spec, same verdict). Executor reported FAIL on `canvas_present` test but this is a false negative: the model generates DOM-based Snake (div grid), not Canvas. Both are valid. Bug in executor._detect_type: classified as `arcade_game` then tested for canvas unconditionally. Fix: split into `arcade_game_canvas` and `arcade_game_dom` subtypes with adapted tests.
+
+  Designer working for first time: 9/10 score, VISUALLY_COMPLETE in 1 audit cycle. First validated Designer result.
+
+  Slight variance in Coder output between run-001 (3936 chars, 911 tokens) and run-002 (4149 chars, 998 tokens) despite temperature=0. Cause: Designer guidelines differ slightly between runs (96 tokens both times but different content due to LLM non-determinism in the Designer pre-code call). The Designer itself is not temperature=0 in prompt design — to investigate.
+
+---
+
+### 2026-04-27 — run-001 — exp-003-asteroid
+
+- **Model**: Qwen2.5-Coder-7B Q5_K_M
+- **Target**: forced single_html
+- **Prompt**: build a classic Asteroid arcade game with shot and explosion sounds
+- **Result**: STALL
+- **Cycles**: 5
+- **Functional**: N/A
+- **Visual**: N/A
+- **Notes**: Critic cycles 1-2 hallucinate heavily: five identical issues claiming five different functions all lack "collision logic" — copy-paste hallucination, not a real analysis. Cycles 3-5 converge on a real problem: `moveBullet` not defined. fix_history injected but index.html stays at 5393 chars = ~1233 tokens through all fix cycles. The model is hitting the same token ceiling as Tetris — "shot and explosion sounds" adds Web Audio API code that consumes the budget. Prompt complexity is above the single_html budget for this model.
+
+  Key finding: the fix_history mechanism does not help when the model is token-capped. The real bottleneck is not the repair loop logic but the output budget.
+
+---
+
+## Planned runs
+
+- **run-007 (exp-001-baseline)**: Tetris, single_html, max_out_tokens raised to 6000 in config. Tests whether token budget was the only blocker.
+- **run-003 (exp-002-snake)**: Snake, single_html, with fixed executor. Should be first fully clean result: ALL_COMPLETE + executor PASS + designer score.
+- **run-002 (exp-003-asteroid)**: Asteroid without sounds ("build a classic Asteroid arcade game"). Removes Web Audio API complexity. Tests whether the prompt richness was the issue.
+- **run-008 (exp-004)**: When baseline is stable, swap Coder to Qwen2.5-Coder-3B Q6_K on Snake. Test minimum Coder model size.
+
+---
+
+## Bug log
+
+| Date | Component | Description | Fix | Status |
+|---|---|---|---|---|
+| 2026-04-26 | loop.py | Planner called when issues list empty | `if not issues: break` guard | Fixed |
+| 2026-04-26 | llm.py | HTTP timeout 600s too short | Raised to 900s | Fixed |
+| 2026-04-27 | planner.py | Same file appeared twice in fix plan | `_deduplicate()` method | Fixed |
+| 2026-04-27 | coder.py/loop.py | Deterministic fix loop at temp=0 | fix_history accumulator injected | Fixed |
+| 2026-04-27 | executor.py | `canvas_present` test false-negative on DOM games | Split `arcade_game` into `arcade_game_canvas` / `arcade_game_dom` with adapted tests | Fixed |
+
+---
+
+### 2026-04-28 — run-004 — exp-002-snake
+
+- **Model**: Qwen2.5-Coder-7B Q5_K_M
+- **Target**: forced single_html
+- **Prompt**: build a Snake game
+- **Result**: ALL_COMPLETE
+- **Cycles**: 1
+- **Functional**: null (venv not activated, Playwright not found)
+- **Visual**: 0.0 (Designer skipped)
+- **Notes**: Run without venv activated — Playwright invisible. Identical output to run-001 (3936 chars, 911 tokens). Confirms full determinism when Designer guidelines are identical. Added `kolmogor` alias to .bashrc to prevent this class of error.
+
+---
+
+### 2026-04-28 — run-005 — exp-002-snake
+
+- **Model**: Qwen2.5-Coder-7B Q5_K_M
+- **Target**: forced single_html
+- **Prompt**: build a Snake game
+- **Result**: ALL_COMPLETE
+- **Cycles**: 1
+- **Functional**: false (executor.py not yet updated on disk, still v1.0)
+- **Visual**: 9.0/10
+- **Notes**: Venv active but executor.py on disk was still v1.0 — the fix had been committed but not copied from Downloads. Still classified artifact as `arcade_game` and failed on `canvas_present`. Output identical to run-002 (4149 chars, 998 tokens, same Designer guidelines). Lesson: always verify file was actually copied after a commit+push cycle.
+
+---
+
+### 2026-04-28 — run-006 — exp-002-snake ✓ BASELINE ESTABLISHED
+
+- **Model**: Qwen2.5-Coder-7B Q5_K_M
+- **Target**: forced single_html
+- **Prompt**: build a Snake game
+- **Result**: ALL_COMPLETE
+- **Cycles**: 1
+- **Functional**: PASS (5/5 tests)
+- **Visual**: 9.0/10 VISUALLY_COMPLETE
+- **Notes**: First fully clean result. All systems operational: pipeline, executor (v1.1), designer, Playwright. artifact_type correctly detected as `arcade_game_dom`. All 5 executor tests pass. 18 bytes seed → 4149 bytes artifact, ratio 0.0043. Duration ~10 minutes total. This is the reference baseline for all future comparisons.
+
+  Executor details: page_loads ✓, no_critical_js_errors ✓, game_area_present ✓, game_elements_rendered ✓, page_has_content ✓.
