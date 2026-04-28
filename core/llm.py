@@ -60,9 +60,9 @@ class LLMClient:
 
         t0 = time.time()
         if self.use_ssl:
-            conn = http.client.HTTPSConnection(self.host, self.port, timeout=900)
+            conn = http.client.HTTPSConnection(self.host, self.port, timeout=1800)
         else:
-            conn = http.client.HTTPConnection(self.host, self.port, timeout=900)
+            conn = http.client.HTTPConnection(self.host, self.port, timeout=1800)
 
         try:
             conn.request("POST", "/v1/chat/completions", body=body, headers=headers)

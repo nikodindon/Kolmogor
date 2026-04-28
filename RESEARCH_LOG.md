@@ -249,3 +249,58 @@ Format per entry:
 - **Notes**: First fully clean result. All systems operational: pipeline, executor (v1.1), designer, Playwright. artifact_type correctly detected as `arcade_game_dom`. All 5 executor tests pass. 18 bytes seed → 4149 bytes artifact, ratio 0.0043. Duration ~10 minutes total. This is the reference baseline for all future comparisons.
 
   Executor details: page_loads ✓, no_critical_js_errors ✓, game_area_present ✓, game_elements_rendered ✓, page_has_content ✓.
+
+---
+
+### 2026-04-28 — run-002 — exp-003-asteroid
+
+- **Model**: Qwen2.5-Coder-7B Q5_K_M
+- **Target**: forced single_html
+- **Prompt**: build a classic Asteroid arcade game
+- **Result**: STALL
+- **Cycles**: 4
+- **Functional**: N/A
+- **Visual**: N/A
+- **Notes**: Removed sounds from prompt vs run-001. Same result: STALL at cycle 4. index.html locked at exactly 5260 chars through all cycles. Root cause: `asteroids.forEach((asteroid) =>` is truncated mid-arrow-function — the model hits its generation ceiling and cuts the file at the same point every cycle. fix_history is injected but irrelevant when the constraint is output budget, not prompt variety. Asteroid without sounds is also above the 7B single_html token budget. The game logic (ship movement, asteroid splitting, collision detection, bullets) is simply too much JS to fit in ~1260 completion tokens.
+
+  Critic pattern: cycle 1 produces 4 identical "missing closing brace" issues for the same function — hallucination of format. Cycles 2-4 converge on the real issue: truncated forEach. Stall detector fires correctly at cycle 4.
+
+  Finding confirmed: **Asteroid is above the 7B single_html complexity threshold regardless of sound inclusion.** The binding constraint is game logic volume, not audio API overhead.
+
+---
+
+### 2026-04-28 — run-007 — exp-001-baseline
+
+- **Model**: Qwen2.5-Coder-7B Q5_K_M
+- **Target**: forced single_html
+- **Prompt**: build a playable Tetris game
+- **Result**: ERROR (HTTP timeout)
+- **Cycles**: 3
+- **Functional**: N/A
+- **Visual**: N/A
+- **Notes**: max_out_tokens raised to 12000. Significant progress vs run-006: at cycle 2 the Coder produced 1615 tokens → 6088 chars (vs 1465 tokens → 5381 chars previously). The larger budget is being used. But cycle 3 fix timed out at 900s — at 4.8 tok/s, a 1600-token completion takes ~333s generation time + LLM overhead, and the repair context grows each cycle pushing total time over 900s.
+
+  Root cause: HTTP timeout is the binding constraint, not token budget. The model is making progress (file grew 13% between cycles 1 and 2) but our timeout is too short for CPU inference at this output size. Fix: raise HTTP timeout to 1800s.
+
+  Critic log shows progression: cycle 1 reports missing function stubs, cycle 2 reports missing JS logic blocks, cycle 3 reports specific missing features. The issues are changing each cycle — not a stall pattern, genuine iterative improvement cut short by timeout.
+
+---
+
+## Planned runs
+
+- **run-008 (exp-001-baseline)**: Tetris, single_html, HTTP timeout 1800s. Should finally complete.
+- **run-003 (exp-003-asteroid)**: Asteroid, single_html, HTTP timeout 1800s. Tests if timeout was also the blocker here.
+- **exp-004**: Snake with Qwen2.5-Coder-3B Q6_K. First model size comparison run.
+
+---
+
+## Bug log
+
+| Date | Component | Description | Fix | Status |
+|---|---|---|---|---|
+| 2026-04-26 | loop.py | Planner called when issues empty | `if not issues: break` | Fixed |
+| 2026-04-26 | llm.py | HTTP timeout 600s | Raised to 900s | Fixed |
+| 2026-04-27 | planner.py | Same file duplicated in fix plan | `_deduplicate()` | Fixed |
+| 2026-04-27 | coder.py/loop.py | Deterministic fix loop at temp=0 | fix_history injected | Fixed |
+| 2026-04-27 | executor.py | canvas_present false-negative on DOM games | arcade_game_canvas/dom split | Fixed |
+| 2026-04-28 | llm.py | HTTP timeout 900s too short for large CPU completions | Raised to 1800s | Fixed |

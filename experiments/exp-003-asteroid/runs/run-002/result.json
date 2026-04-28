@@ -1,0 +1,23 @@
+{
+  "model": "qwen2.5-coder-7b",
+  "prompt": "build a classic Asteroid arcade game",
+  "experiment": "exp-003-asteroid",
+  "run_id": "run-002",
+  "started_at": "2026-04-28T11:37:21.675328",
+  "finished_at": "2026-04-28T12:23:42.088110",
+  "forced_target": "single_html",
+  "cycles": 4,
+  "verdict": "STALL",
+  "stall_detected": true,
+  "stall_pattern": "recurring issue(s) across 3+ cycles: 1. `<file>` — the `updategame` function is missing a closing parenthesis at the end of the line `asteroids.foreach((asteroid) =`. | 5. `<file>` — the `updategame` function is missing a call to itself to create a game loop. | 3. `<file>` — the `updategame` function is missing a call to itself to create a game loop.",
+  "stall_diagnosis": "The Coder is not resolving missing imports or undefined references. Possible causes: model too small to track cross-file dependencies, or spec does not make file roles explicit enough.",
+  "executor_pass": null,
+  "executor_details": {},
+  "designer_score": null,
+  "designer_cycles": 0,
+  "seed_bytes": 36,
+  "artifact_bytes": 5260,
+  "compression_ratio": 0.0068,
+  "functional_hash": "",
+  "error": ""
+}

@@ -86,3 +86,20 @@ from Designer pre-code guidelines (not fully deterministic). Two stable clusters
 **Finding 4 — The 7B model prefers DOM over Canvas for arcade games.** All Snake runs produce div-based rendering. Whether this holds for Tetris and Asteroid is an open question.
 
 **Finding 5 — Compression ratio baseline: 0.0043 for Snake.** 18 bytes → 4149 bytes. This is the first validated data point for the Kolmogorov compression research axis.
+
+---
+
+## Updated findings — 2026-04-28
+
+**Finding 6 — Asteroid is above the 7B single_html threshold.** Both runs (with and without
+sounds) produce identical stalls at 5260 chars. The game logic volume alone exceeds the
+~1260 token output budget. Sounds were not a factor.
+
+**Finding 7 — HTTP timeout was masking progress on Tetris.** run-007 shows the file growing
+from 5381 to 6088 chars (13% growth) between fix cycles — genuine iterative improvement.
+The timeout at 900s cut it short. With 1800s timeout, Tetris may complete.
+
+**Finding 8 — Token ceiling varies by fix cycle context size.** Generation ceiling:
+- Initial generation: ~1465 tokens (clean context)
+- Fix cycle with history: ~1258-1615 tokens (larger input context = different ceiling)
+The model doesn't have a fixed ceiling — it depends on the prompt token count.

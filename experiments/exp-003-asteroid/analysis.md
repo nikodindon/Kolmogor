@@ -25,3 +25,16 @@ in single_html mode. Intermediate complexity between Snake (trivial) and Tetris 
 Remove "with shot and explosion sounds" from the prompt. Test if the core Asteroid game
 logic fits within the token budget without audio. If run-002 succeeds, the finding is:
 sounds specifically push this prompt over the 7B single_html threshold.
+
+## Updated after run-002
+
+run-002 (without sounds) produces the same stall at cycle 4 with the same root cause.
+The sounds were not the issue — the core Asteroid game logic (ship, asteroids, bullets,
+collision detection, splitting) already exceeds the 7B single_html token budget.
+
+**Revised finding:** Asteroid is above the 7B complexity threshold for single_html,
+regardless of sound inclusion. The compression seed "build a classic Asteroid arcade game"
+(36 bytes) encodes more information than the 7B model can decompress in ~1260 tokens.
+
+Next test: run-003 with HTTP timeout raised to 1800s, to separate timeout from token ceiling.
+If run-003 still stalls at 5260 chars, token ceiling is confirmed. If it progresses, timeout was the issue.
