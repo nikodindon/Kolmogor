@@ -5,12 +5,13 @@ Usage:
     python main.py "build a snake game"
     python main.py "build a snake game" --experiment exp-002 --max_cycles 8
     python main.py "build a snake game" --target html_js --no-play --debug
-    python main.py "build a snake game" --target python_pygame
+    python main.py "build a Tetris game" --mode project --target single_html --debug
     python main.py --list
     python main.py --play exp-001/run-001
 
---target forces the Meta-Architect stack decision. Useful for comparative runs.
-Valid values: html_js, python_pygame, python_cli, auto (default: auto)
+--target forces the Meta-Architect stack decision.
+--mode simple (default): single-pass Coder/Critic loop
+--mode project: Decomposer + PM + TaskCoder + Reviewer loop
 """
 
 import argparse
@@ -23,6 +24,7 @@ from pathlib import Path
 from core.config import load_config
 from core.session import Session
 from core.loop import run_pipeline
+from core.project_loop import run_project_pipeline
 
 
 def list_experiments():
@@ -66,6 +68,8 @@ def main():
     parser.add_argument("prompt", nargs="?", help="Natural language prompt")
     parser.add_argument("--experiment", default=None, help="Experiment name (default: auto)")
     parser.add_argument("--max_cycles", type=int, default=6)
+    parser.add_argument("--mode", default="simple", choices=["simple", "project"],
+                        help="Pipeline mode: simple (default) or project (Decomposer+PM)")
     parser.add_argument("--target", default="auto",
                         choices=["auto", "html_js", "single_html", "python_pygame", "python_cli"],
                         help="Force stack target (default: auto, Meta-Architect decides)")
@@ -113,6 +117,7 @@ def main():
     print(f"  model      : {config.get('model', '?')}")
     print(f"  prompt     : {args.prompt[:80]}")
     print(f"  target     : {args.target}")
+    print(f"  mode       : {args.mode}")
     print(f"  max_cycles : {args.max_cycles}")
     print()
 
@@ -124,11 +129,15 @@ def main():
         forced_target=args.target if args.target != "auto" else None,
     )
 
-    result = run_pipeline(session, max_cycles=args.max_cycles, play=not args.no_play)
+    if args.mode == "project":
+        result = run_project_pipeline(session, play=not args.no_play)
+    else:
+        result = run_pipeline(session, max_cycles=args.max_cycles, play=not args.no_play)
 
     # Summary
     print(f"\nRun complete.")
     print(f"  verdict   : {result.get('verdict')}")
+    print(f"  mode      : {args.mode}")
     print(f"  cycles    : {result.get('cycles')}")
     print(f"  target    : {result.get('forced_target') or 'auto'}")
     print(f"  functional: {result.get('executor_pass')}")
