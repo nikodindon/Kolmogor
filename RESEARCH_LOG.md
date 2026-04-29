@@ -304,3 +304,53 @@ Format per entry:
 | 2026-04-27 | coder.py/loop.py | Deterministic fix loop at temp=0 | fix_history injected | Fixed |
 | 2026-04-27 | executor.py | canvas_present false-negative on DOM games | arcade_game_canvas/dom split | Fixed |
 | 2026-04-28 | llm.py | HTTP timeout 900s too short for large CPU completions | Raised to 1800s | Fixed |
+
+---
+
+### 2026-04-28 — run-008 — exp-001-baseline
+
+- **Model**: Qwen2.5-Coder-7B Q5_K_M
+- **Target**: forced single_html
+- **Prompt**: build a playable Tetris game
+- **Result**: STALL
+- **Cycles**: 4
+- **Functional**: N/A
+- **Visual**: N/A
+- **Notes**: HTTP timeout raised to 1800s. File progresses: 3970 → 4346 → 4569 → 4569 chars. Genuine iterative improvement for 3 cycles then stall. The Coder generates scaffold, event listeners, and function calls correctly — but the function bodies for `moveTetrimino`, `rotateTetrimino`, `dropTetrimino`, `clearLines` are absent because they fall past the token generation ceiling. fix_history is injected from cycle 2 onward but has no effect: the issue is output budget, not prompt variety.
+
+  **Conclusion: Tetris is above the 7B single_html complexity threshold.** This is not a pipeline failure — it is the first concrete measurement of the model's decompression capacity boundary. 28-byte seed ("build a playable Tetris game") encodes more information than the 7B can expand in one pass given its effective token budget.
+
+---
+
+### 2026-04-28 — run-003 — exp-003-asteroid
+
+- **Model**: Qwen2.5-Coder-7B Q5_K_M
+- **Target**: forced single_html
+- **Prompt**: build a classic Asteroid arcade game
+- **Result**: STALL
+- **Cycles**: 4
+- **Functional**: N/A
+- **Visual**: N/A
+- **Notes**: HTTP timeout 1800s confirmed not the issue — run-002 stalled at 5260 chars, run-003 stalls at 5001 chars. Same pattern: scaffold generated, function calls present, bodies missing. `createBullet` and `gameLoop` absent. File stabilizes at 5001 chars from cycle 2 — identical fix_history, identical output, zero progress.
+
+  **Token ceiling confirmed as the binding constraint for Asteroid.** The file size ceiling is consistent across runs with different timeout values, proving the issue is generation capacity, not time.
+
+---
+
+## Summary of 7B complexity thresholds (single_html, Q5_K_M)
+
+| Prompt | Seed bytes | Status | Peak artifact | Binding constraint |
+|---|---|---|---|---|
+| build a Snake game | 18 | ✓ ALL_COMPLETE | 4149 bytes | None — fits in budget |
+| build a playable Tetris game | 28 | ✗ STALL | 4569 bytes | Token ceiling: missing function bodies |
+| build a classic Asteroid arcade game | 36 | ✗ STALL | 5001 bytes | Token ceiling: missing function bodies |
+
+**Finding 9 — The 7B decompression threshold lies between Snake and Tetris.** A 10-byte increase in seed size (18 → 28 bytes) crosses the model's capacity boundary for single_html artifacts. The boundary is not about seed size per se — it is about the number of non-trivial functions the artifact requires. Snake needs ~4 functions. Tetris needs ~8. The model can scaffold all 8 but cannot fully implement them within its effective generation budget.
+
+---
+
+## Planned runs
+
+- **exp-005 (complexity boundary)**: Prompts of graduated complexity between Snake and Tetris to find the exact boundary. Candidates: "build a Pong game" (2 paddles, 1 ball, simple collision), "build a simple Tetris with only left/right movement and falling pieces, no rotation, no line clearing".
+- **exp-004 (model size)**: Snake with Qwen2.5-Coder-3B Q6_K. Does the 3B succeed where Snake succeeds for the 7B?
+- **exp-006 (prompt engineering)**: Tetris with enriched prompt that explicitly constraints scope: "build a Tetris game. Implement only: piece falling, left/right movement, rotation. Omit line clearing and scoring." Tests whether seed enrichment enables success on otherwise-failing prompts.

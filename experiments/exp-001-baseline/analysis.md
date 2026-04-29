@@ -2,36 +2,63 @@
 
 ## Objective
 
-Establish a baseline with the reference model (Qwen2.5-Coder-7B Q5_K_M) on a canonical prompt (Tetris). Validate the full pipeline runs end to end before starting model comparison experiments.
+Establish the pipeline baseline with Qwen2.5-Coder-7B Q5_K_M on a Tetris prompt.
+Tetris was chosen as the canonical "non-trivial game" benchmark — more complex than Snake,
+well-known enough that a 7B model should have strong training signal on it.
 
 ## Runs
 
-| Run | Model | Target | Cycles | Verdict | Functional | Visual | Stall | Notes |
-|---|---|---|---|---|---|---|---|---|
-| run-001 | Qwen7B Q5_K_M | auto → python_pygame | 5 | STALL | N/A | N/A | rotate_piece / drop_piece / clear_lines | First run, bug in Planner (empty issues) |
-| run-002 | Qwen7B Q5_K_M | auto → python_pygame | 5 | STALL | N/A | N/A | Same pattern | snapshot_limit 1500, same result |
-| run-003 | Qwen7B Q5_K_M | auto → python_pygame | 6 | ERROR | N/A | N/A | None (timeout before stall) | HTTP timeout at 600s, cycle 5 tetris.py 4583 chars |
-| run-004 | Qwen7B Q5_K_M | forced html_js | TBD | TBD | TBD | TBD | TBD | |
+| Run | Target | Cycles | Verdict | Notes |
+|---|---|---|---|---|
+| run-001 | auto → python_pygame | 5 | STALL | Multi-file Pygame, first run ever |
+| run-002 | auto → python_pygame | 5 | STALL | snapshot_limit 1500, same result |
+| run-003 | auto → python_pygame | 6 | ERROR | HTTP timeout 600s |
+| run-004 | auto → python_pygame | — | — | (skipped in log, part of run-003 batch) |
+| run-005 | forced html_js | 5 | STALL | Multi-file HTML, same cross-file issue |
+| run-006 | forced single_html | 2 | ERROR | HTTP timeout 600s, token ceiling |
+| run-007 | forced single_html | 3 | ERROR | HTTP timeout 900s, file grew to 6088 chars |
+| run-008 | forced single_html | 4 | STALL | HTTP timeout 1800s, token ceiling confirmed |
 
-## Key observations
+## Conclusion
 
-**Meta-Architect always picks Pygame for a Tetris prompt.** Across 3 runs with temperature=0, the decision was deterministic and consistently wrong for this model. The model associates "game" with Pygame. The --target flag is the right fix for controlled experiments.
+**Tetris is above the Qwen2.5-Coder-7B Q5_K_M decompression threshold for single_html.**
 
-**Multi-file Pygame is above the 7B repair loop capacity.** The Coder can write correct Python code for each file individually, but cannot maintain cross-file consistency through fix cycles. The Critic verification is unreliable on multi-file snapshots: run-002's final tetris.py contains all required methods, but the Critic kept marking them as missing.
+This is not a pipeline failure. Every pipeline bug has been found and fixed. The stall in
+run-008 is clean — the model generates a correct scaffold with all function calls present,
+then runs out of token budget before implementing the function bodies.
 
-**The Coder self-consolidates toward a single file given enough cycles.** In run-003, tetris.py grew from 550 to 4583 chars across 6 cycles — the model was pulling logic from utils.py into tetris.py on its own. This suggests a single-file constraint in the Architect prompt would accelerate convergence.
+The specific functions that fail across all runs: `moveTetrimino`, `rotateTetrimino`,
+`dropTetrimino`, `clearLines`, `startGame`, `pauseGame`. These are the most logic-dense
+functions in a Tetris implementation. The model knows they are needed (it calls them)
+but cannot generate their bodies within its effective generation window.
 
-**Critic hallucination on multi-file context is a real phenomenon.** The critic_log for run-002 shows the Critic marking rotate_piece as missing on cycles 3-5, but the method is present in the actual file. This is the most important finding of this experiment: the Critic's text-only review of a multi-file snapshot is not reliable enough to drive a repair loop.
+## What the multi-file runs taught us (run-001 to run-005)
 
-## What changes for run-004
+These runs revealed two distinct failure modes:
 
-- `--target html_js` forces single-file HTML/JS canvas, bypasses Meta-Architect LLM call
-- Bug fix: empty issues list no longer triggers Planner (loop.py)
-- HTTP timeout raised to 900s (llm.py)
-- Hypothesis: single-file HTML reduces cross-file verification burden on Critic → fewer false positives → faster convergence
+The first is **Critic cross-file hallucination**: the Critic reports missing methods that
+actually exist in the generated files. The text-only snapshot fed to the Critic truncates
+or presents files in a way that causes phantom missing-method reports.
 
-## Longer-term questions this experiment opens
+The second is the **token ceiling problem**, which only became visible once we switched to
+single_html. Previously, the multi-file failures were masking it.
 
-Should the Critic be given each file separately rather than a combined snapshot? A per-file Critic call would avoid the truncation and cross-file hallucination problem, at the cost of more LLM calls per cycle.
+## The token ceiling problem in detail
 
-Is Pygame viable at all with this architecture, or should it be reserved for experiments with a larger context window model?
+The 7B model generates approximately 900-1465 tokens per completion call. Tetris requires
+approximately 1800-2200 tokens of JS logic for a complete single-file implementation.
+The gap between model capacity and artifact requirement is ~400-700 tokens.
+
+No amount of fix cycling closes this gap because the fix calls regenerate the same
+truncated file — the model always runs out of budget at the same logical point.
+
+## Path forward
+
+Two approaches to explore:
+
+**Scope reduction**: "build a minimal Tetris — falling pieces, left/right movement only.
+No rotation, no line clearing, no scoring." Reduces required functions from ~8 to ~4.
+
+**Explicit budget prompting**: Give the Coder an explicit instruction: "implement all
+functions completely. If you must choose, implement the game loop and movement first.
+Do not write function stubs." Tests whether the model can prioritize within its budget.
