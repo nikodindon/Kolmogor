@@ -1,0 +1,50 @@
+{
+  "model": "qwen2.5-coder-7b",
+  "prompt": "build a Pong game",
+  "experiment": "exp-005-pong",
+  "run_id": "run-001",
+  "started_at": "2026-04-29T09:24:22.476506",
+  "finished_at": "2026-04-29T09:36:00.234805",
+  "forced_target": "single_html",
+  "cycles": 1,
+  "verdict": "ALL_COMPLETE",
+  "stall_detected": false,
+  "stall_pattern": "",
+  "stall_diagnosis": "",
+  "executor_pass": true,
+  "executor_details": {
+    "pass": true,
+    "artifact_type": "arcade_game_canvas",
+    "tests": [
+      {
+        "name": "page_loads",
+        "pass": true,
+        "detail": "True"
+      },
+      {
+        "name": "no_critical_js_errors",
+        "pass": true,
+        "detail": "True"
+      },
+      {
+        "name": "canvas_present",
+        "pass": true,
+        "detail": "True"
+      },
+      {
+        "name": "canvas_has_size",
+        "pass": true,
+        "detail": "True"
+      }
+    ],
+    "console_errors": [],
+    "dialogs": []
+  },
+  "designer_score": 8.0,
+  "designer_cycles": 1,
+  "seed_bytes": 17,
+  "artifact_bytes": 3026,
+  "compression_ratio": 0.0056,
+  "functional_hash": "",
+  "error": ""
+}

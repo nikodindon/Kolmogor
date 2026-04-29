@@ -354,3 +354,44 @@ Format per entry:
 - **exp-005 (complexity boundary)**: Prompts of graduated complexity between Snake and Tetris to find the exact boundary. Candidates: "build a Pong game" (2 paddles, 1 ball, simple collision), "build a simple Tetris with only left/right movement and falling pieces, no rotation, no line clearing".
 - **exp-004 (model size)**: Snake with Qwen2.5-Coder-3B Q6_K. Does the 3B succeed where Snake succeeds for the 7B?
 - **exp-006 (prompt engineering)**: Tetris with enriched prompt that explicitly constraints scope: "build a Tetris game. Implement only: piece falling, left/right movement, rotation. Omit line clearing and scoring." Tests whether seed enrichment enables success on otherwise-failing prompts.
+
+---
+
+### 2026-04-29 — run-001 — exp-005-pong
+
+- **Model**: Qwen2.5-Coder-7B Q5_K_M
+- **Target**: forced single_html
+- **Prompt**: build a Pong game
+- **Result**: ALL_COMPLETE
+- **Cycles**: 1
+- **Functional**: PASS (4/4 tests)
+- **Visual**: 8.0/10 NEEDS_VISUAL_FIXES (threshold 7, not triggered)
+- **Notes**: Clean success. 17 bytes → 3026 bytes, ratio 0.0056. Model chose Canvas (not DOM) — correct choice for continuous ball trajectory rendering. First Canvas success, confirming the model selects rendering approach based on game type. Pong fits comfortably in token budget (769 tokens initial generation). Duration ~12 minutes. Second validated ALL_COMPLETE after Snake.
+
+---
+
+### 2026-04-29 — run-001 — exp-005-tetris-minimal
+
+- **Model**: Qwen2.5-Coder-7B Q5_K_M
+- **Target**: forced single_html
+- **Prompt**: build a minimal Tetris: falling pieces, left and right movement only, no rotation, no line clearing
+- **Result**: ALL_COMPLETE
+- **Cycles**: 2
+- **Functional**: FAIL (game_area_present + page_has_content false — likely false negative)
+- **Visual**: 7.0/10
+- **Notes**: Scope reduction confirmed as valid strategy. Cycle 1: stubs detected (movePieceLeft/Right not implemented, falling logic missing). Cycle 2: ALL_COMPLETE. Seed: 99 bytes vs 28 bytes for full Tetris. Compression ratio 0.0324 vs 0.0043 for Snake — the enriched seed compresses 7x worse. This is the core tension: reducing scope to fit the model's budget requires more information in the seed, which reduces compression efficiency. The model succeeds but at the cost of Kolmogorov complexity. Executor false negative likely: Critic says ALL_COMPLETE, game renders (7.0/10 visual), but game_area_present fails — executor DOM selector doesn't match the generated structure.
+
+---
+
+### 2026-04-29 — run-001 — exp-004-snake-3b
+
+- **Model**: Qwen2.5-Coder-3B Q5_K_M (qwen2.5-3b-instruct-q5_k_m.gguf)
+- **Target**: forced single_html
+- **Prompt**: build a Snake game
+- **Result**: ALL_COMPLETE
+- **Cycles**: 1
+- **Functional**: PASS (5/5 tests, but ERR_FILE_NOT_FOUND in console)
+- **Visual**: 2.0/10 after 3 Designer cycles
+- **Notes**: Major finding. The 3B ignores the single_html constraint and generates 2 files (index.html + game.js) despite explicit single-file constraints in the Meta-Architect decision. The Critic produces a malformed response (NEEDS_FIXES with 0 issues, features listed without Issues: block) — our guard treats it as ALL_COMPLETE. The Designer then finds the visual quality poor (2/10) and attempts fixes, generating phantom files (styles.css, header.html, footer.html, utils.js) that don't exist. ERR_FILE_NOT_FOUND confirms broken cross-file references. The 3B can generate functional Snake logic but cannot follow architectural constraints or produce a coherent single-file output. Executor PASS is a partial pass — the game works because game.js is loaded correctly, but the file structure is wrong.
+
+  Key finding: **the 3B fails on constraint following, not on code generation ability.** It knows how to write Snake. It doesn't understand "put everything in one file."

@@ -1,0 +1,55 @@
+{
+  "model": "qwen2.5-coder-7b",
+  "prompt": "build a minimal Tetris: falling pieces, left and right movement only, no rotation, no line clearing",
+  "experiment": "exp-005-tetris-minimal",
+  "run_id": "run-001",
+  "started_at": "2026-04-29T09:36:35.258907",
+  "finished_at": "2026-04-29T09:59:09.655035",
+  "forced_target": "single_html",
+  "cycles": 2,
+  "verdict": "ALL_COMPLETE",
+  "stall_detected": false,
+  "stall_pattern": "",
+  "stall_diagnosis": "",
+  "executor_pass": false,
+  "executor_details": {
+    "pass": false,
+    "artifact_type": "arcade_game_dom",
+    "tests": [
+      {
+        "name": "page_loads",
+        "pass": true,
+        "detail": "True"
+      },
+      {
+        "name": "no_critical_js_errors",
+        "pass": true,
+        "detail": "True"
+      },
+      {
+        "name": "game_area_present",
+        "pass": false,
+        "detail": "False"
+      },
+      {
+        "name": "game_elements_rendered",
+        "pass": true,
+        "detail": "True"
+      },
+      {
+        "name": "page_has_content",
+        "pass": false,
+        "detail": "False"
+      }
+    ],
+    "console_errors": [],
+    "dialogs": []
+  },
+  "designer_score": 7.0,
+  "designer_cycles": 1,
+  "seed_bytes": 99,
+  "artifact_bytes": 3059,
+  "compression_ratio": 0.0324,
+  "functional_hash": "",
+  "error": ""
+}

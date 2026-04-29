@@ -1,0 +1,57 @@
+{
+  "model": "qwen2.5-3b-instruct-q5_k_m.gguf",
+  "prompt": "build a Snake game",
+  "experiment": "exp-004-snake-3b",
+  "run_id": "run-001",
+  "started_at": "2026-04-29T11:16:06.363195",
+  "finished_at": "2026-04-29T11:39:57.525383",
+  "forced_target": "single_html",
+  "cycles": 1,
+  "verdict": "ALL_COMPLETE",
+  "stall_detected": false,
+  "stall_pattern": "",
+  "stall_diagnosis": "",
+  "executor_pass": true,
+  "executor_details": {
+    "pass": true,
+    "artifact_type": "arcade_game_dom",
+    "tests": [
+      {
+        "name": "page_loads",
+        "pass": true,
+        "detail": "True"
+      },
+      {
+        "name": "no_critical_js_errors",
+        "pass": true,
+        "detail": "True"
+      },
+      {
+        "name": "game_area_present",
+        "pass": true,
+        "detail": "True"
+      },
+      {
+        "name": "game_elements_rendered",
+        "pass": true,
+        "detail": "True"
+      },
+      {
+        "name": "page_has_content",
+        "pass": true,
+        "detail": "True"
+      }
+    ],
+    "console_errors": [
+      "Failed to load resource: net::ERR_FILE_NOT_FOUND"
+    ],
+    "dialogs": []
+  },
+  "designer_score": 2.0,
+  "designer_cycles": 3,
+  "seed_bytes": 18,
+  "artifact_bytes": 4466,
+  "compression_ratio": 0.004,
+  "functional_hash": "",
+  "error": ""
+}
