@@ -96,31 +96,8 @@ def run_project_pipeline(session: Session, play: bool = True) -> dict:
             # Get current file content
             current_content = session.generated_files.get(current_task.file, "")
 
-            # Get PM decision (or start first task)
-            if total_task_cycles > 0:
-                decision = pm.decide(plan, last_report, current_task)
-                log_pm(decision, last_report[:100])
-                print(f"  PM: {decision.decision} — {decision.reason[:60]}")
-
-                if decision.decision == "RETROSPECTIVE":
-                    current_task.status = "FAILED"
-                    session.metrics.verdict = "RETROSPECTIVE"
-                    session.metrics.stall_detected = True
-                    session.metrics.stall_pattern = f"{current_task.id}: {decision.reason}"
-                    print(f"  RETROSPECTIVE triggered. Human analysis needed.")
-                    break
-
-                if decision.decision == "COMPLETE":
-                    break
-
-                if decision.decision == "BLOCKED":
-                    session.metrics.verdict = "BLOCKED"
-                    print(f"  BLOCKED: {decision.reason}")
-                    break
-
-                instruction = decision.instruction if decision.decision == "RETRY" else None
-            else:
-                instruction = None
+            # Build instruction for this attempt (None on first try)
+            instruction = getattr(current_task, "_instruction", None)
 
             # TaskCoder implements the task
             print(f"  Coder implementing {current_task.id} (retry {current_task.retry_count})...")
@@ -146,27 +123,34 @@ def run_project_pipeline(session: Session, play: bool = True) -> dict:
             )
 
             if review.is_done():
+                # Task complete — move to next without consulting PM
                 current_task.status = "DONE"
                 print(f"  ✓ {current_task.id} DONE")
-                # Move to next task
                 current_task = plan.next_pending()
-                if current_task:
-                    last_report = f"Task {review.task_id} completed successfully. Moving to {current_task.id}."
+                if current_task is None:
+                    # No more tasks
+                    break
             else:
+                # Task failed — consult PM for retry/retrospective decision
                 current_task.retry_count += 1
-                if current_task.retry_count >= ProjectManager.MAX_RETRIES:
-                    decision = PMDecision(
-                        decision="RETROSPECTIVE",
-                        task_id=current_task.id,
-                        reason=f"Max retries ({ProjectManager.MAX_RETRIES}) reached.",
-                    )
-                    log_pm(decision)
+                decision = pm.decide(plan, last_report, current_task)
+                log_pm(decision, last_report[:100])
+                print(f"  PM: {decision.decision} — {decision.reason[:60]}")
+
+                if decision.decision == "RETROSPECTIVE":
                     current_task.status = "FAILED"
                     session.metrics.stall_detected = True
-                    session.metrics.stall_pattern = f"{current_task.id} failed after {current_task.retry_count} retries: {'; '.join(review.issues[:2])}"
+                    session.metrics.stall_pattern = (
+                        f"{current_task.id} failed {current_task.retry_count} times: "
+                        f"{'; '.join(review.issues[:2])}"
+                    )
                     session.metrics.stall_diagnosis = "Max retries reached. Human analysis needed."
-                    print(f"  RETROSPECTIVE: {current_task.id} failed {current_task.retry_count} times")
+                    print(f"  RETROSPECTIVE triggered on {current_task.id}.")
                     break
+
+                # RETRY — attach instruction for next attempt
+                current_task._instruction = decision.instruction
+                # current_task stays the same, loop continues
 
         # Save final task plan state
         task_plan_path.write_text(plan.to_markdown(), encoding="utf-8")
