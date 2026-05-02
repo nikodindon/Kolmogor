@@ -3,17 +3,13 @@ project_loop.py
 
 Orchestrates the project mode pipeline:
 
-  Meta-Architect → Architect → Decomposer → [PM → TaskCoder → Reviewer] × N → Designer
+  CONCEPTION: Meta-Architect → Architect → Analyst → Spec Reviewer → Decomposer → Plan Reviewer
+  DEVELOPMENT: [PM → TaskCoder → Reviewer] × N
+  VALIDATION:  Executor → Designer
 
-The key difference from the simple loop:
-- The Decomposer breaks the spec into atomic tasks
-- The PM drives task selection and retry logic
-- The TaskCoder implements one task at a time on the growing file
-- The Reviewer checks each task against its done_when condition
-- The PM logs every decision to pm_log.jsonl for research analysis
-
-This loop is designed to handle projects that exceed the 7B model's
-single-pass token budget by decomposing them into sub-budget tasks.
+The conception phase (phases 0-4) ensures the project is fully designed
+before any code is written. Agents validate each other's output.
+The development phase (phase 5) implements tasks one at a time.
 """
 
 import json
@@ -24,11 +20,17 @@ from core.session import Session
 from core.llm import LLMClient
 from agents.meta_architect import MetaArchitect
 from agents.architect import Architect
+from agents.analyst import Analyst
+from agents.spec_reviewer import SpecReviewer
 from agents.decomposer import Decomposer, TaskPlan
+from agents.plan_reviewer import PlanReviewer
 from agents.task_coder import TaskCoder
 from agents.reviewer import Reviewer
 from agents.project_manager import ProjectManager, PMDecision
 from agents.designer import Designer
+
+MAX_CONCEPTION_LOOPS = 3
+MAX_PLAN_LOOPS = 3
 
 
 def run_project_pipeline(session: Session, play: bool = True) -> dict:
@@ -37,6 +39,7 @@ def run_project_pipeline(session: Session, play: bool = True) -> dict:
 
     pm_log_path = session.run_path / "pm_log.jsonl"
     task_plan_path = session.run_path / "task_plan.md"
+    design_path = session.run_path / "technical_design.md"
 
     def log_pm(decision: PMDecision, context: str = ""):
         entry = {
@@ -51,6 +54,8 @@ def run_project_pipeline(session: Session, play: bool = True) -> dict:
             f.write(json.dumps(entry) + "\n")
 
     try:
+        # ── CONCEPTION PHASE ────────────────────────────────────────────────
+
         # Phase 0: Meta-Architect
         print("Phase 0  Meta-Architect...")
         meta = MetaArchitect(llm)
@@ -64,56 +69,99 @@ def run_project_pipeline(session: Session, play: bool = True) -> dict:
         session.write_spec(spec)
         print(f"  spec: {len(spec)} chars")
 
-        # Phase 2: Decomposer
-        print("Phase 2  Decomposer...")
-        decomposer = Decomposer(llm)
-        plan = decomposer.decompose(spec, stack_decision)
-        task_plan_path.write_text(plan.to_markdown(), encoding="utf-8")
-        print(f"  {len(plan.tasks)} tasks:")
-        print(plan.summary())
+        # Phase 2: Analyst + Spec Reviewer loop
+        print("Phase 2  Analyst...")
+        analyst_agent = Analyst(llm)
+        spec_reviewer_agent = SpecReviewer(llm)
+        design = None
+
+        for attempt in range(MAX_CONCEPTION_LOOPS):
+            design = analyst_agent.analyse(spec)
+            design_path.write_text(design.to_markdown(), encoding="utf-8")
+            print(f"  [{attempt+1}] {design.project_type} — "
+                  f"{len(design.state_variables)} vars, "
+                  f"{len(design.algorithms)} algos, "
+                  f"{len(design.critical_mechanisms)} mechanisms")
+
+            print(f"  [{attempt+1}] Spec Reviewer...")
+            spec_review = spec_reviewer_agent.review(spec, design)
+            print(f"  [{attempt+1}] {spec_review.verdict}"
+                  + (f" — {len(spec_review.issues)} issues" if spec_review.issues else ""))
+
+            if spec_review.is_approved():
+                break
+            if attempt < MAX_CONCEPTION_LOOPS - 1:
+                issues_text = "\n".join(spec_review.issues)
+                spec = f"{spec}\n\n## Revision notes\n{issues_text}"
+                session.write_spec(spec)
+            else:
+                print(f"  Max conception loops — proceeding with current design")
 
         # Phase 3: Designer pre-code guidelines
         print("Phase 3  Designer (pre-code guidelines)...")
         designer = Designer(llm)
         visual_guidelines = designer.pre_code_guidelines(spec)
 
-        # Phase 4: PM-driven task loop
-        print("Phase 4  Project Manager loop...")
+        # Phase 4: Decomposer + Plan Reviewer loop
+        print("Phase 4  Decomposer...")
+        decomposer = Decomposer(llm)
+        plan_reviewer_agent = PlanReviewer(llm)
+        plan = None
+
+        for attempt in range(MAX_PLAN_LOOPS):
+            plan = decomposer.decompose(spec, stack_decision, design)
+            task_plan_path.write_text(plan.to_markdown(), encoding="utf-8")
+            print(f"  [{attempt+1}] {len(plan.tasks)} tasks:")
+            print(plan.summary())
+
+            print(f"  [{attempt+1}] Plan Reviewer...")
+            plan_review = plan_reviewer_agent.review(design, plan)
+            print(f"  [{attempt+1}] {plan_review.verdict}"
+                  + (f" — {len(plan_review.issues)} issues" if plan_review.issues else ""))
+
+            if plan_review.is_approved():
+                break
+            if attempt < MAX_PLAN_LOOPS - 1:
+                issues_text = "\n".join(plan_review.issues)
+                spec = f"{spec}\n\n## Plan revision notes\n{issues_text}"
+            else:
+                print(f"  Max plan loops — proceeding with current plan")
+
+        # ── DEVELOPMENT PHASE ───────────────────────────────────────────────
+
+        print("\nPhase 5  Project Manager loop...")
         task_coder = TaskCoder(llm)
         reviewer = Reviewer(llm)
         pm = ProjectManager(llm)
 
         current_task = plan.next_pending()
-        last_report = "Project starting. No previous report."
         total_task_cycles = 0
+
+        # Build design context string to pass to TaskCoder
+        design_context = design.to_context_string() if design else ""
 
         while current_task is not None:
             current_task.status = "IN_PROGRESS"
-
             print(f"\n  Task {current_task.id}: {current_task.title}")
             print(f"  done_when: {current_task.done_when[:80]}")
 
-            # Get current file content
             current_content = session.generated_files.get(current_task.file, "")
-
-            # Build instruction for this attempt (None on first try)
             instruction = getattr(current_task, "_instruction", None)
 
-            # TaskCoder implements the task
             print(f"  Coder implementing {current_task.id} (retry {current_task.retry_count})...")
             new_content = task_coder.implement(
                 task=current_task,
                 current_content=current_content,
-                spec_context=spec + "\n\nVISUAL GUIDELINES:\n" + visual_guidelines,
+                spec_context=spec + "\n\nVISUAL GUIDELINES:\n" + visual_guidelines
+                              + "\n\nTECHNICAL DESIGN:\n" + design_context,
                 instruction=instruction,
             )
             session.write_file(current_task.file, new_content)
             total_task_cycles += 1
 
-            # Reviewer checks the task
             review = reviewer.review(current_task, new_content)
-            last_report = review.raw
-            print(f"  Reviewer: {review.status}" + (f" ({len(review.issues)} issues)" if review.issues else ""))
+            print(f"  Reviewer: {review.status}"
+                  + (f" ({len(review.issues)} issues)" if review.issues else ""))
 
             session.log_critic_cycle(
                 cycle=total_task_cycles,
@@ -123,18 +171,13 @@ def run_project_pipeline(session: Session, play: bool = True) -> dict:
             )
 
             if review.is_done():
-                # Task complete — move to next without consulting PM
                 current_task.status = "DONE"
                 print(f"  ✓ {current_task.id} DONE")
                 current_task = plan.next_pending()
-                if current_task is None:
-                    # No more tasks
-                    break
             else:
-                # Task failed — consult PM for retry/retrospective decision
                 current_task.retry_count += 1
-                decision = pm.decide(plan, last_report, current_task)
-                log_pm(decision, last_report[:100])
+                decision = pm.decide(plan, review.raw, current_task)
+                log_pm(decision, review.raw[:100])
                 print(f"  PM: {decision.decision} — {decision.reason[:60]}")
 
                 if decision.decision == "RETROSPECTIVE":
@@ -148,25 +191,19 @@ def run_project_pipeline(session: Session, play: bool = True) -> dict:
                     print(f"  RETROSPECTIVE triggered on {current_task.id}.")
                     break
 
-                # RETRY — attach instruction for next attempt
                 current_task._instruction = decision.instruction
-                # current_task stays the same, loop continues
 
-        # Save final task plan state
         task_plan_path.write_text(plan.to_markdown(), encoding="utf-8")
         session.metrics.cycles = total_task_cycles
 
-        # Determine verdict
-        if plan.all_done():
-            verdict = "ALL_COMPLETE"
-        elif session.metrics.stall_detected:
-            verdict = "RETROSPECTIVE"
-        else:
-            verdict = session.metrics.verdict or "INCOMPLETE"
+        verdict = "ALL_COMPLETE" if plan.all_done() else (
+            "RETROSPECTIVE" if session.metrics.stall_detected else "INCOMPLETE"
+        )
 
-        # Phase 5: Executor
+        # ── VALIDATION PHASE ────────────────────────────────────────────────
+
         if verdict == "ALL_COMPLETE":
-            print("\nPhase 5  Executor (functional tests)...")
+            print("\nPhase 6  Executor (functional tests)...")
             try:
                 from core.executor import Executor
                 executor = Executor()
@@ -177,15 +214,14 @@ def run_project_pipeline(session: Session, play: bool = True) -> dict:
             except Exception as e:
                 print(f"  Executor error: {e}")
 
-            # Phase 6: Designer post-render audit
-            print("Phase 6  Designer (visual audit)...")
+            print("Phase 7  Designer (visual audit)...")
             try:
                 score, designer_cycles = designer.post_render_audit(
                     session.files_path, spec, visual_guidelines, task_coder, None, session
                 )
                 session.metrics.designer_score = score
                 session.metrics.designer_cycles = designer_cycles
-                print(f"  visual score: {score}/10 after {designer_cycles} audit cycle(s)")
+                print(f"  visual score: {score}/10 after {designer_cycles} cycle(s)")
             except Exception as e:
                 print(f"  Designer audit error: {e}")
 

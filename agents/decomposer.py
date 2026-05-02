@@ -100,16 +100,22 @@ class Decomposer:
     def __init__(self, llm: LLMClient):
         self.llm = llm
 
-    def decompose(self, spec: str, stack_decision: dict) -> TaskPlan:
+    def decompose(self, spec: str, stack_decision: dict, design=None) -> TaskPlan:
         """
-        Takes a SPEC.md and stack decision, returns an ordered TaskPlan.
+        Takes a SPEC.md, stack decision, and optional TechnicalDesign from the Analyst.
+        Returns an ordered TaskPlan.
         """
         target = stack_decision.get("target", "single_html")
         constraints = stack_decision.get("constraints", [])
 
+        design_context = ""
+        if design is not None:
+            design_context = f"\nTECHNICAL DESIGN FROM ANALYST:\n{design.to_context_string()}\n"
+
         user_message = (
             f"TARGET: {target}\n"
-            f"CONSTRAINTS: {', '.join(constraints)}\n\n"
+            f"CONSTRAINTS: {', '.join(constraints)}\n"
+            f"{design_context}\n"
             f"SPEC:\n{spec}"
         )
 
