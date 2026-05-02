@@ -1,0 +1,23 @@
+{
+  "model": "qwen2.5-3b-instruct-q5_k_m.gguf",
+  "prompt": "build a playable Tetris game",
+  "experiment": "exp-006-tetris-project",
+  "run_id": "run-001",
+  "started_at": "2026-04-29T21:09:49.970966",
+  "finished_at": "2026-04-29T21:36:47.781186",
+  "forced_target": "single_html",
+  "cycles": 4,
+  "verdict": "BLOCKED",
+  "stall_detected": false,
+  "stall_pattern": "",
+  "stall_diagnosis": "",
+  "executor_pass": null,
+  "executor_details": {},
+  "designer_score": null,
+  "designer_cycles": 0,
+  "seed_bytes": 28,
+  "artifact_bytes": 1100,
+  "compression_ratio": 0.0255,
+  "functional_hash": "",
+  "error": ""
+}

@@ -21,8 +21,12 @@ Rules:
 - Implement ONLY what the task description says. Do not implement future tasks.
 - Do not remove or break existing code from previous tasks.
 - The done_when condition is your implementation target. Meet it exactly.
-- Keep your implementation minimal and correct. No gold-plating.
-- If a previous instruction is provided, follow it — it means a previous attempt failed.
+- CRITICAL: No stubs, no empty function bodies, no TODO comments, no placeholder logic.
+  Every function you write must contain real, working implementation code.
+  A function with just `// TODO` or `console.log('placeholder')` is a failure.
+- If a function needs to track state (current piece position, score, board state),
+  declare the state variable at the top of the script and use it properly.
+- If a previous instruction is provided, it means your last attempt had a specific problem — fix it.
 - Output as a markdown code block with the filename as a comment on the first line.
 - Do not explain. Output only the code block."""
 

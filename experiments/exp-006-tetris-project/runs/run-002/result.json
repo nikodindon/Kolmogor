@@ -1,0 +1,23 @@
+{
+  "model": "qwen2.5-3b-instruct-q5_k_m.gguf",
+  "prompt": "build a playable Tetris game",
+  "experiment": "exp-006-tetris-project",
+  "run_id": "run-002",
+  "started_at": "2026-04-29T21:41:56.495755",
+  "finished_at": "2026-04-29T23:17:48.053360",
+  "forced_target": "single_html",
+  "cycles": 10,
+  "verdict": "RETROSPECTIVE",
+  "stall_detected": true,
+  "stall_pattern": "task-008 failed 3 times: 1. The `rotateTetrimino` function does not handle the rotation logic correctly. It simply transposes the shape, which is not the correct way to rotate a Tetrimino.; 2. The `rotateTetrimino` function does not check if the rotated shape is within the grid boundaries or collides with other Tetriminos.",
+  "stall_diagnosis": "Max retries reached. Human analysis needed.",
+  "executor_pass": null,
+  "executor_details": {},
+  "designer_score": null,
+  "designer_cycles": 0,
+  "seed_bytes": 28,
+  "artifact_bytes": 4180,
+  "compression_ratio": 0.0067,
+  "functional_hash": "",
+  "error": ""
+}
