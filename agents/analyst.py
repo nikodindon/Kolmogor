@@ -30,6 +30,8 @@ class TechnicalDesign:
     state_variables: list[dict] = field(default_factory=list)
     algorithms: list[dict] = field(default_factory=list)
     render_strategy: str = ""
+    render_integration: str = ""
+    timing: str = ""
     critical_mechanisms: list[str] = field(default_factory=list)
     pitfalls: list[str] = field(default_factory=list)
     raw: str = ""
@@ -47,10 +49,15 @@ class TechnicalDesign:
             lines.append(f"Triggered by: {a.get('triggered_by', '?')}")
             lines.append(f"Reads: {', '.join(a.get('reads', []))}")
             lines.append(f"Writes: {', '.join(a.get('writes', []))}")
+            lines.append(f"Calls: {', '.join(a.get('calls', []))}")
             for i, step in enumerate(a.get('steps', []), 1):
                 lines.append(f"  {i}. {step}")
 
         lines.append(f"\n## Render strategy\n{self.render_strategy}")
+        if self.render_integration:
+            lines.append(f"\n## Render integration (CRITICAL)\n{self.render_integration}")
+        if self.timing:
+            lines.append(f"\n## Timing (CRITICAL)\n{self.timing}")
 
         lines.append("\n## Critical mechanisms")
         for m in self.critical_mechanisms:
@@ -70,6 +77,12 @@ class TechnicalDesign:
         for v in self.state_variables:
             parts.append(f"  {v.get('name')}: {v.get('type')} {v.get('shape', '')} — {v.get('purpose')}")
 
+        if self.render_integration:
+            parts.append(f"\nRENDER INTEGRATION (CRITICAL): {self.render_integration}")
+
+        if self.timing:
+            parts.append(f"\nTIMING (CRITICAL): {self.timing}")
+
         parts.append("\nCRITICAL MECHANISMS:")
         for m in self.critical_mechanisms:
             parts.append(f"  - {m}")
@@ -81,7 +94,9 @@ class TechnicalDesign:
         parts.append("\nALGORITHMS:")
         for a in self.algorithms:
             steps = " → ".join(a.get('steps', [])[:3])
-            parts.append(f"  {a.get('name')}: triggered by {a.get('triggered_by', '?')} → {steps}")
+            calls = ", ".join(a.get('calls', []))
+            parts.append(f"  {a.get('name')}: triggered by {a.get('triggered_by', '?')} → {steps}"
+                        + (f" → calls: {calls}" if calls else ""))
 
         parts.append(f"\nRENDER STRATEGY: {self.render_strategy}")
 
@@ -117,6 +132,8 @@ class Analyst:
                 state_variables=data.get("state_variables", []),
                 algorithms=data.get("algorithms", []),
                 render_strategy=data.get("render_strategy", ""),
+                render_integration=data.get("render_integration", ""),
+                timing=data.get("timing", ""),
                 critical_mechanisms=data.get("critical_mechanisms", []),
                 pitfalls=data.get("pitfalls", []),
             )
