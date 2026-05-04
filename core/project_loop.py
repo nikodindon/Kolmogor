@@ -216,8 +216,10 @@ def run_project_pipeline(session: Session, play: bool = True) -> dict:
 
             print("Phase 7  Designer (visual audit)...")
             try:
+                from agents.planner import Planner
+                planner = Planner(llm)
                 score, designer_cycles = designer.post_render_audit(
-                    session.files_path, spec, visual_guidelines, task_coder, None, session
+                    session.files_path, spec, visual_guidelines, task_coder, planner, session
                 )
                 session.metrics.designer_score = score
                 session.metrics.designer_cycles = designer_cycles
