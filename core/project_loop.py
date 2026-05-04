@@ -159,7 +159,7 @@ def run_project_pipeline(session: Session, play: bool = True) -> dict:
             session.write_file(current_task.file, new_content)
             total_task_cycles += 1
 
-            review = reviewer.review(current_task, new_content)
+            review = reviewer.review(current_task, new_content, design_context=design_context)
             print(f"  Reviewer: {review.status}"
                   + (f" ({len(review.issues)} issues)" if review.issues else ""))
 

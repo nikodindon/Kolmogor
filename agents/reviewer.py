@@ -36,15 +36,21 @@ class Reviewer:
     def __init__(self, llm: LLMClient):
         self.llm = llm
 
-    def review(self, task: Task, file_content: str) -> ReviewResult:
+    def review(self, task: Task, file_content: str, design_context: str = "") -> ReviewResult:
         """
         Review a single task against its done_when condition.
+        design_context: compact string from Analyst.to_context_string(), passed as additional context.
         """
+        design_block = ""
+        if design_context:
+            design_block = f"\nTECHNICAL DESIGN CONTEXT:\n{design_context[:600]}\n"
+
         user_message = (
             f"TASK ID: {task.id}\n"
             f"TASK TITLE: {task.title}\n"
             f"DONE WHEN: {task.done_when}\n\n"
-            f"TASK DESCRIPTION:\n{task.description}\n\n"
+            f"TASK DESCRIPTION:\n{task.description}\n"
+            f"{design_block}\n"
             f"CURRENT FILE CONTENT ({task.file}):\n"
             f"```\n{file_content}\n```"
         )
