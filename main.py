@@ -75,6 +75,7 @@ def main():
                         help="Force stack target (default: auto, Meta-Architect decides)")
     parser.add_argument("--no-timeout", action="store_true",
                         help="Disable HTTP timeout (useful for large models or network inference)")
+    parser.add_argument("--no-play", action="store_true", help="Generate but do not open in browser")
     parser.add_argument("--debug", action="store_true", help="Verbose logging")
     parser.add_argument("--list", action="store_true", help="List all experiments and runs")
     parser.add_argument("--play", default=None, help="Replay an existing run: exp-001/run-001")
