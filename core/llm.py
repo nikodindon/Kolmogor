@@ -25,6 +25,8 @@ class LLMClient:
         self.host = parsed.hostname
         self.port = parsed.port or (443 if parsed.scheme == "https" else 80)
         self.use_ssl = parsed.scheme == "https"
+        # None means no timeout (for large/slow models). Default 1800s.
+        self.timeout = config.get("http_timeout", 1800)
 
     def complete(
         self,
@@ -60,9 +62,9 @@ class LLMClient:
 
         t0 = time.time()
         if self.use_ssl:
-            conn = http.client.HTTPSConnection(self.host, self.port, timeout=1800)
+            conn = http.client.HTTPSConnection(self.host, self.port, timeout=self.timeout)
         else:
-            conn = http.client.HTTPConnection(self.host, self.port, timeout=1800)
+            conn = http.client.HTTPConnection(self.host, self.port, timeout=self.timeout)
 
         try:
             conn.request("POST", "/v1/chat/completions", body=body, headers=headers)

@@ -73,7 +73,8 @@ def main():
     parser.add_argument("--target", default="auto",
                         choices=["auto", "html_js", "single_html", "python_pygame", "python_cli"],
                         help="Force stack target (default: auto, Meta-Architect decides)")
-    parser.add_argument("--no-play", action="store_true", help="Generate but do not open in browser")
+    parser.add_argument("--no-timeout", action="store_true",
+                        help="Disable HTTP timeout (useful for large models or network inference)")
     parser.add_argument("--debug", action="store_true", help="Verbose logging")
     parser.add_argument("--list", action="store_true", help="List all experiments and runs")
     parser.add_argument("--play", default=None, help="Replay an existing run: exp-001/run-001")
@@ -100,6 +101,10 @@ def main():
 
     config = load_config()
 
+    # Apply --no-timeout flag
+    if args.no_timeout:
+        config["http_timeout"] = None  # None = no timeout in LLMClient
+
     # Resolve experiment folder
     if args.experiment:
         exp_name = args.experiment
@@ -118,6 +123,7 @@ def main():
     print(f"  prompt     : {args.prompt[:80]}")
     print(f"  target     : {args.target}")
     print(f"  mode       : {args.mode}")
+    print(f"  timeout    : {'none' if args.no_timeout else '1800s'}")
     print(f"  max_cycles : {args.max_cycles}")
     print()
 
